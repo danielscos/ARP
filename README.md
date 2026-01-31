@@ -1,3 +1,1 @@
-+#Interceptor
-<br/>
-praise almog a gever!!!
+Interceptor, praise almog a gever!!!
