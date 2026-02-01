@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root xmlns="urn:schemas-upnp-org:device-1-0" xmlns:dlna="urn:schemas-dlna-org:device-1-0">
+  <specVersion>
+    <major>1</major>
+    <minor>0</minor>
+  </specVersion>
+  <device>
+    <deviceType>urn:dial-multiscreen-org:service:dial:1</deviceType>
+    <friendlyName>[LG] webOS TV OLED65A1PVA</friendlyName>
+    <manufacturer>LG</manufacturer>
+    <manufacturerURL>http://www.lge.com</manufacturerURL>
+    <modelDescription></modelDescription>
+    <modelName>OLED65A1PVA</modelName>
+    <modelURL>http://www.lge.com</modelURL>
+    <modelNumber>WEBOS</modelNumber>
+    <serialNumber></serialNumber>
+    <UDN>uuid:a2da324e-c757-46f0-8509-3a8ea0348f15</UDN>
+    <serviceList>
+      <service>
+        <serviceType>urn:dial-multiscreen-org:service:dial:1</serviceType>
+        <serviceId>urn:dial-multiscreen-org:serviceId:dial</serviceId>
+        <SCPDURL>/WebOS_Dial/a2da324e-c757-46f0-8509-3a8ea0348f15/scpd.xml</SCPDURL>
+        <controlURL>/WebOS_Dial/a2da324e-c757-46f0-8509-3a8ea0348f15/control.xml</controlURL>
+        <eventSubURL>/WebOS_Dial/a2da324e-c757-46f0-8509-3a8ea0348f15/event.xml</eventSubURL>
+      </service>
+    </serviceList>
+  </device>
+</root>

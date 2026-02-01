@@ -2,6 +2,7 @@ import argparse
 import re
 import gzip
 import io
+import base64
 from pathlib import Path
 from collections import defaultdict
 
@@ -64,19 +65,40 @@ def find_http_responses(bytes_data):
         idx = body_start + max(1, len(body))
     return results
 
-def guess_extension(body, headers):
-    if body.startswith(b'\x89PNG\r\n\x1a\n'): return '.png'
-    if body.startswith(b'\xff\xd8\xff'): return '.jpg'
-    if body.startswith(b'\x50\x4b\x03\x04'): return '.zip'
-    if body.startswith(b'%PDF'): return '.pdf'
-    if body.startswith(b'MZ'): return '.exe'
-    
-    ctype = headers.get('content-type', '')
-    if 'image/gif' in ctype: return '.gif'
-    if 'text/html' in ctype: return '.html'
-    if 'application/json' in ctype: return '.json'
-    if 'text/javascript' in ctype: return '.js'
+def guess_extension(body):
+    signatures = {
+        b'\x89PNG\r\n\x1a\n': '.png',
+        b'\xff\xd8\xff': '.jpg',
+        b'\x47\x49\x46\x38': '.gif',
+        b'\x50\x4b\x03\x04': '.zip',
+        b'%PDF': '.pdf',
+        b'MZ': '.exe',
+        b'\x7fELF': '.elf',
+        b'\x1f\x8b\x08': '.gz',
+        b'PK\x03\x04': '.docx',
+        b'\xd0\xcf\x11\xe0': '.doc',
+        b'<html': '.html',
+        b'<?xml': '.xml',
+        b'{': '.json',
+        b'[': '.json'
+    }
+    for sig, ext in signatures.items():
+        if body.startswith(sig):
+            return ext
     return '.bin'
+
+def attempt_decode(body):
+    if body.startswith(b'\x1f\x8b\x08'):
+        try:
+            return gzip.decompress(body), "Gzip Decoded"
+        except: pass
+
+    if len(body) > 10 and re.match(rb'^[A-Za-z0-9+/=\s]+$', body[:100]):
+        try:
+            return base64.b64decode(body), "Base64 Decoded"
+        except: pass
+
+    return body, None
 
 def sanitize_filename(name):
     name = re.sub(r'[<>:"/\\|\?\*]', '_', name)
@@ -86,8 +108,11 @@ def process_and_save(headers, body, outdir, sess_id):
     if headers.get('content-encoding') == 'gzip':
         try:
             body = gzip.decompress(body)
-        except Exception:
-            pass 
+        except: pass
+
+    body, method = attempt_decode(body)
+    if method:
+        print(f"    [i] Action: {method}")
 
     fname = None
     if 'content-disposition' in headers:
@@ -96,7 +121,7 @@ def process_and_save(headers, body, outdir, sess_id):
         if m: fname = m.group(1)
     
     if not fname:
-        ext = guess_extension(body, headers)
+        ext = guess_extension(body)
         fname = f"extracted_{sess_id}_{hash(body) % 1000}{ext}"
     
     path = Path(outdir) / sanitize_filename(fname)
