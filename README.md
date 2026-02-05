@@ -27,8 +27,12 @@ Before running the tool, run Setup.bat. or ensure you have the following install
 ## Installation
 **just install the zip file**
 
+---
+
 ## Usage
 * Run start_ARPC.bat for the live capture to start
+
+---
 
 ## Credits:
 * **Cool Guy:** Almog
