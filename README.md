@@ -19,7 +19,6 @@ Before running the tool, run Setup.bat. or ensure you have the following install
 
 1. **Python 3.10+**
 2. **Npcap:** Required for raw packet sniffing on Windows. [Download here](https://npcap.com/). 
-   * *Note: Install with "WinPcap API-compatible mode" checked.*
 3. **Administrative Privileges:** The terminal must be run as Administrator to access the network stack.
 
 ---
@@ -29,7 +28,7 @@ Before running the tool, run Setup.bat. or ensure you have the following install
 
 ---
 
-## Usage
+## Usage - very simple to use
 * Run start_ARPC.bat for the live capture to start
 
 ---
